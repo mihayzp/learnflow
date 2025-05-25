@@ -1,17 +1,49 @@
 'use client'
 
-import { useState } from 'react'
-import { Brain, ArrowRight, ArrowLeft } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Brain, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { useAuth } from '@/components/auth/AuthProvider'
 
 export default function OnboardingPage() {
+  const { user, profile, completeOnboarding, loading: authLoading } = useAuth()
   const [step, setStep] = useState(1)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [formData, setFormData] = useState({
-    name: '',
-    learningStyle: '',
-    goals: [],
-    timePreference: ''
+    full_name: '',
+    learning_style: '',
+    primary_goals: [],
+    time_preference: ''
   })
+
+  useEffect(() => {
+    // Redirect to dashboard if onboarding already completed
+    if (profile?.onboarding_completed) {
+      window.location.href = '/dashboard'
+    }
+    
+    // Pre-fill name if available
+    if (user && !formData.full_name) {
+      setFormData(prev => ({
+        ...prev,
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || ''
+      }))
+    }
+  }, [profile, user, formData.full_name]) 
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    window.location.href = '/'
+    return null
+  }
 
   const updateFormData = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -20,30 +52,24 @@ export default function OnboardingPage() {
   const nextStep = () => setStep(prev => prev + 1)
   const prevStep = () => setStep(prev => prev - 1)
 
-  const completeOnboarding = () => {
-    // Save user profile
-    const userProfile = {
-      ...formData,
-      completedOnboarding: true,
-      createdAt: new Date().toISOString(),
-      id: Date.now()
+  const handleCompleteOnboarding = async () => {
+    setLoading(true)
+    setError('')
+
+    try {
+      const { error: onboardingError } = await completeOnboarding(formData)
+      
+      if (onboardingError) {
+        setError(onboardingError)
+      } else {
+        // Success - redirect to dashboard
+        window.location.href = '/dashboard'
+      }
+    } catch (err) {
+      setError('An error occurred during onboarding')
+    } finally {
+      setLoading(false)
     }
-    
-    localStorage.setItem('learnflow-user', JSON.stringify(userProfile))
-    
-    // Initialize user progress
-    const initialProgress = {
-      completedLessons: 0,
-      totalMinutes: 0,
-      currentStreak: 0,
-      averageAccuracy: 0,
-      startedAt: new Date().toISOString()
-    }
-    
-    localStorage.setItem('learnflow-progress', JSON.stringify(initialProgress))
-    
-    // Redirect to dashboard
-    window.location.href = '/dashboard'
   }
 
   return (
@@ -66,8 +92,15 @@ export default function OnboardingPage() {
                 />
               ))}
             </div>
-            <p className="text-white/80">Let&apos;s personalize your learning experience</p>
+            <p className="text-white/80">Let&apos;s personalize your AI learning experience</p>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-500/20 border border-red-400/30 rounded-xl">
+              <p className="text-red-300 text-sm">{error}</p>
+            </div>
+          )}
 
           {/* Step Content */}
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
@@ -76,16 +109,16 @@ export default function OnboardingPage() {
                 <h2 className="text-2xl font-bold text-white mb-6">What should we call you?</h2>
                 <input
                   type="text"
-                  placeholder="Enter your first name"
-                  value={formData.name}
-                  onChange={(e) => updateFormData('name', e.target.value)}
+                  placeholder="Enter your name"
+                  value={formData.full_name}
+                  onChange={(e) => updateFormData('full_name', e.target.value)}
                   className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:border-emerald-400 focus:outline-none text-lg"
                   autoFocus
                 />
                 <div className="mt-8">
                   <Button 
                     onClick={nextStep} 
-                    disabled={!formData.name.trim()}
+                    disabled={!formData.full_name.trim()}
                     className="w-full text-lg py-4"
                   >
                     Continue
@@ -98,7 +131,7 @@ export default function OnboardingPage() {
             {step === 2 && (
               <div>
                 <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                  How do you learn best, {formData.name}?
+                  How do you learn best, {formData.full_name}?
                 </h2>
                 <div className="space-y-4">
                   {[
@@ -110,7 +143,7 @@ export default function OnboardingPage() {
                     <button
                       key={style.id}
                       onClick={() => {
-                        updateFormData('learningStyle', style.id)
+                        updateFormData('learning_style', style.id)
                         setTimeout(nextStep, 200)
                       }}
                       className="w-full p-6 text-left bg-white/5 hover:bg-white/15 border border-white/20 rounded-xl transition-all duration-300 hover:scale-105"
@@ -137,16 +170,16 @@ export default function OnboardingPage() {
                 <div className="grid grid-cols-2 gap-4">
                   {[
                     { id: 'python', label: '🐍 Python Programming', popular: true },
-                    { id: 'ai', label: '🤖 AI & Machine Learning', trending: true },
-                    { id: 'web', label: '🌐 Web Development' },
-                    { id: 'data', label: '📊 Data Science' },
-                    { id: 'design', label: '🎨 UI/UX Design' },
-                    { id: 'business', label: '💼 Business Skills' }
+                    { id: 'javascript', label: '⚡ JavaScript', trending: true },
+                    { id: 'react', label: '⚛️ React Development' },
+                    { id: 'data-science', label: '📊 Data Science' },
+                    { id: 'web-dev', label: '🌐 Web Development' },
+                    { id: 'ai-ml', label: '🤖 AI & ML' }
                   ].map((goal) => (
                     <button
                       key={goal.id}
                       onClick={() => {
-                        updateFormData('goals', [goal.id])
+                        updateFormData('primary_goals', [goal.id])
                         setTimeout(nextStep, 200)
                       }}
                       className="relative p-6 bg-white/5 hover:bg-white/15 border border-white/20 rounded-xl transition-all duration-300 hover:scale-105 text-center"
@@ -181,9 +214,9 @@ export default function OnboardingPage() {
                     <span className="text-3xl">🎉</span>
                   </div>
                   <h2 className="text-3xl font-bold text-white mb-4">
-                    Perfect! You&apos;re all set, {formData.name}!
+                    Perfect! You&apos;re all set, {formData.full_name}!
                   </h2>
-                  <p className="text-white/80 text-lg">Your personalized learning journey is ready to begin.</p>
+                  <p className="text-white/80 text-lg">Your AI-powered learning journey is ready to begin.</p>
                 </div>
                 
                 {/* Profile Summary */}
@@ -192,20 +225,20 @@ export default function OnboardingPage() {
                   <div className="space-y-2 text-white/90">
                     <div>
                       <strong>Learning Style:</strong> {
-                        formData.learningStyle === 'visual' ? 'Visual Learner' :
-                        formData.learningStyle === 'hands-on' ? 'Hands-on Learner' :
-                        formData.learningStyle === 'explain' ? 'Explanation Learner' :
+                        formData.learning_style === 'visual' ? 'Visual Learner' :
+                        formData.learning_style === 'hands-on' ? 'Hands-on Learner' :
+                        formData.learning_style === 'explain' ? 'Explanation Learner' :
                         'Quick Learner'
                       }
                     </div>
                     <div>
                       <strong>First Goal:</strong> {
-                        formData.goals[0] === 'python' ? 'Python Programming' :
-                        formData.goals[0] === 'ai' ? 'AI & Machine Learning' :
-                        formData.goals[0] === 'web' ? 'Web Development' :
-                        formData.goals[0] === 'data' ? 'Data Science' :
-                        formData.goals[0] === 'design' ? 'UI/UX Design' :
-                        'Business Skills'
+                        formData.primary_goals[0] === 'python' ? 'Python Programming' :
+                        formData.primary_goals[0] === 'javascript' ? 'JavaScript' :
+                        formData.primary_goals[0] === 'react' ? 'React Development' :
+                        formData.primary_goals[0] === 'data-science' ? 'Data Science' :
+                        formData.primary_goals[0] === 'web-dev' ? 'Web Development' :
+                        'AI & Machine Learning'
                       }
                     </div>
                   </div>
@@ -213,15 +246,25 @@ export default function OnboardingPage() {
 
                 <div className="space-y-4">
                   <Button 
-                    onClick={completeOnboarding}
+                    onClick={handleCompleteOnboarding}
                     className="w-full text-lg py-4"
+                    disabled={loading}
                   >
-                    Start My First Lesson
-                    <ArrowRight className="ml-2 w-5 h-5" />
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Setting up your experience...
+                      </>
+                    ) : (
+                      <>
+                        Start My AI Learning Journey
+                        <ArrowRight className="ml-2 w-5 h-5" />
+                      </>
+                    )}
                   </Button>
                   
                   <p className="text-white/60 text-sm">
-                    ✨ AI will adapt your lessons based on your progress and learning style
+                    ✨ AI will personalize every lesson based on your preferences
                   </p>
                 </div>
               </div>

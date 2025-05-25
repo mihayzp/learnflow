@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 export function AuthModal({ isOpen, onClose, mode = 'signin' }) {
   const [authMode, setAuthMode] = useState(mode)
   const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -15,22 +16,36 @@ export function AuthModal({ isOpen, onClose, mode = 'signin' }) {
 
   if (!isOpen) return null
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Mock authentication - in real app, this would call API
-    localStorage.setItem('learnflow-user', JSON.stringify({
-      id: Date.now(),
-      email: formData.email,
-      name: formData.name || formData.email.split('@')[0],
-      createdAt: new Date().toISOString()
-    }))
+    setLoading(true)
     
-    // Redirect to onboarding for new users, dashboard for existing
-    if (authMode === 'signup') {
-      window.location.href = '/onboarding'
-    } else {
-      window.location.href = '/dashboard'
-    }
+    // Simulate auth delay
+    setTimeout(() => {
+      // Mock authentication - save user to localStorage
+      const user = {
+        id: Date.now(),
+        email: formData.email,
+        name: formData.name || formData.email.split('@')[0],
+        createdAt: new Date().toISOString(),
+        completedOnboarding: false
+      }
+      
+      localStorage.setItem('learnflow-user', JSON.stringify(user))
+      
+      // Redirect based on auth mode
+      if (authMode === 'signup') {
+        window.location.href = '/onboarding'
+      } else {
+        // For sign in, check if onboarding is complete
+        const existingUser = JSON.parse(localStorage.getItem('learnflow-user') || '{}')
+        if (existingUser.completedOnboarding) {
+          window.location.href = '/dashboard'
+        } else {
+          window.location.href = '/onboarding'
+        }
+      }
+    }, 1000)
   }
 
   return (
@@ -96,8 +111,12 @@ export function AuthModal({ isOpen, onClose, mode = 'signin' }) {
             </button>
           </div>
 
-          <Button type="submit" className="w-full mt-6">
-            {authMode === 'signin' ? 'Sign In' : 'Create Account'}
+          <Button 
+            type="submit" 
+            className="w-full mt-6"
+            disabled={loading}
+          >
+            {loading ? 'Loading...' : (authMode === 'signin' ? 'Sign In' : 'Create Account')}
           </Button>
         </form>
 

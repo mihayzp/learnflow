@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Brain, Clock, Target, Zap, ArrowRight, LogIn } from 'lucide-react'
 import { AuthModal } from '@/components/auth/authModal'
 
+
 export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authMode, setAuthMode] = useState('signup')

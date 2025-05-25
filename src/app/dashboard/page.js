@@ -1,60 +1,58 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Clock, Target, TrendingUp, Play, Award, Zap, Star, User } from 'lucide-react'
+import { Clock, Target, TrendingUp, Play, Award, Zap, Star, User, Brain, BarChart3 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Navigation } from '@/components/ui/Navigation'
 
 export default function DashboardPage() {
   const [user, setUser] = useState(null)
-  const [progress, setProgress] = useState({
-    completedLessons: 0,
-    totalMinutes: 0,
-    currentStreak: 0,
-    averageAccuracy: 85
-  })
-  const [recentLessons, setRecentLessons] = useState([])
-  const [isLoaded, setIsLoaded] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedUser = JSON.parse(localStorage.getItem('learnflow-user') || 'null')
-      
-      if (!savedUser || !savedUser.completedOnboarding) {
-        window.location.href = '/onboarding'
-        return
-      }
-      
-      setUser(savedUser)
-      
-      const savedProgress = JSON.parse(localStorage.getItem('learnflow-progress') || '{}')
-      const completions = JSON.parse(localStorage.getItem('learnflow-completions') || '[]')
-      
-      setProgress({
-        completedLessons: savedProgress.completedLessons || 0,
-        totalMinutes: Math.round(savedProgress.totalMinutes || 0),
-        currentStreak: savedProgress.currentStreak || 0,
-        averageAccuracy: 85
-      })
-      
-      setRecentLessons(completions.slice(-5).reverse())
-      setIsLoaded(true)
+    // Check for user in localStorage (fallback)
+    const localUser = localStorage.getItem('learnflow-user')
+    if (localUser) {
+      setUser(JSON.parse(localUser))
     }
+    setLoading(false)
   }, [])
 
-  if (!isLoaded || !user) {
+  if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading your dashboard...</div>
-      </main>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading dashboard...</div>
+      </div>
     )
   }
 
-  const todayLesson = {
-    id: 1,
-    title: progress.completedLessons === 0 ? "Python Variables Made Simple" : "Python Lists and Loops",
-    difficulty: progress.completedLessons === 0 ? 2 : 3,
-    estimatedTime: 5
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-4">Welcome to LearnFlow</h2>
+          <p className="text-white/70 mb-6">Please sign in to continue</p>
+          <Button onClick={() => window.location.href = '/'}>
+            Go to Homepage
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Mock data for testing
+  const progress = {
+    total_lessons_completed: 3,
+    total_learning_minutes: 15,
+    current_streak: 2,
+    average_accuracy: 0.87
+  }
+
+  const nextLesson = {
+    id: '1',
+    title: 'Python Variables Made Simple',
+    difficulty: 2,
+    estimated_duration: 5
   }
 
   const getGreeting = () => {
@@ -72,61 +70,53 @@ export default function DashboardPage() {
         {/* Welcome Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
-            {getGreeting()}, {user.name}! 👋
+            {getGreeting()}, {user.name || user.full_name || 'Learner'}! 👋
           </h1>
           <p className="text-white/70 text-lg">
-            {progress.completedLessons === 0 
-              ? "Ready to start your learning journey?" 
-              : "Ready for your next 5-minute boost?"
-            }
+            Ready for your next 5-minute learning boost?
           </p>
         </div>
 
-        {/* Quick Stats */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-emerald-400">{progress.completedLessons}</div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20">
+            <div className="text-2xl font-bold text-emerald-400">{progress.total_lessons_completed}</div>
             <div className="text-white/70 text-sm">Lessons</div>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-blue-400">{progress.totalMinutes}m</div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20">
+            <div className="text-2xl font-bold text-blue-400">{progress.total_learning_minutes}m</div>
             <div className="text-white/70 text-sm">Time</div>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-purple-400">{progress.currentStreak}</div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20">
+            <div className="text-2xl font-bold text-purple-400">{progress.current_streak}</div>
             <div className="text-white/70 text-sm">Streak</div>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-400">{progress.averageAccuracy}%</div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20">
+            <div className="text-2xl font-bold text-yellow-400">{Math.round(progress.average_accuracy * 100)}%</div>
             <div className="text-white/70 text-sm">Accuracy</div>
           </div>
         </div>
 
-        {/* Main Lesson Card */}
+        {/* Today's Lesson */}
         <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20 mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-white mb-2">
-                {progress.completedLessons === 0 ? "Your First Lesson" : "Continue Learning"}
-              </h2>
-              <p className="text-white/70">
-                Personalized for {user.learningStyle} learners
-              </p>
+              <h3 className="text-2xl font-bold text-white mb-2">Today&apos;s Lesson</h3>
+              <p className="text-white/70">Personalized for your learning style</p>
             </div>
             <div className="text-right">
               <div className="flex items-center text-emerald-400 mb-2">
                 <Clock className="w-5 h-5 mr-2" />
-                <span className="font-semibold">{todayLesson.estimatedTime} minutes</span>
+                <span className="font-semibold">{nextLesson.estimated_duration} minutes</span>
               </div>
               <div className="text-white/70 text-sm">Perfect timing</div>
             </div>
           </div>
 
           <div className="bg-gradient-to-r from-emerald-500/20 to-blue-600/20 rounded-2xl p-6 border border-emerald-400/30">
-            <h3 className="text-xl font-bold text-white mb-2">{todayLesson.title}</h3>
+            <h4 className="text-xl font-bold text-white mb-2">{nextLesson.title}</h4>
             <p className="text-white/80 mb-6">
-              Difficulty {todayLesson.difficulty}/5 • 
-              {progress.completedLessons === 0 ? " Perfect for beginners" : " Building on your progress"}
+              Difficulty: {nextLesson.difficulty}/5 • Interactive coding exercises
             </p>
             
             <Button
@@ -134,46 +124,32 @@ export default function DashboardPage() {
               className="flex items-center text-lg px-8 py-4"
             >
               <Play className="w-5 h-5 mr-2" />
-              {progress.completedLessons === 0 ? "Start Learning" : "Continue"}
+              Start Learning
             </Button>
           </div>
         </div>
 
-        {/* Progress Section */}
+        {/* AI Insights */}
         <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20">
-          <h3 className="text-xl font-bold text-white mb-6">Your Learning Journey</h3>
+          <h3 className="text-xl font-bold text-white mb-6 flex items-center">
+            <Brain className="w-6 h-6 mr-2 text-emerald-400" />
+            AI Learning Insights
+          </h3>
           
-          {recentLessons.length > 0 ? (
-            <div className="space-y-4">
-              {recentLessons.map((lesson, index) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                  <div>
-                    <p className="text-white font-medium">Python Variables</p>
-                    <p className="text-white/60 text-sm">
-                      {new Date(lesson.completedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-emerald-400 font-semibold">✓ Complete</div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-gradient-to-r from-emerald-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">🎯</span>
-              </div>
-              <h4 className="text-white font-semibold mb-2">Ready to Begin!</h4>
-              <p className="text-white/70 mb-6">
-                Start your journey into {user.goals[0] === 'python' ? 'Python programming' : 'new skills'}.
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-purple-500/20 rounded-xl p-4 border border-purple-400/30">
+              <h4 className="font-semibold text-white mb-2">Your Learning Pattern</h4>
+              <p className="text-white/80 text-sm">
+                You perform best with hands-on exercises in the morning. Your accuracy increases 23% with interactive content.
               </p>
-              <Button 
-                onClick={() => window.location.href = '/lesson'}
-                variant="secondary"
-              >
-                Take First Lesson
-              </Button>
             </div>
-          )}
+            <div className="bg-green-500/20 rounded-xl p-4 border border-green-400/30">
+              <h4 className="font-semibold text-white mb-2">Progress Prediction</h4>
+              <p className="text-white/80 text-sm">
+                At your current pace, you&apos;ll complete Python basics in 8 days. Keep up the great momentum!
+              </p>
+            </div>
+          </div>
         </div>
       </main>
     </div>

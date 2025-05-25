@@ -9,17 +9,17 @@ export function Navigation() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedUser = JSON.parse(localStorage.getItem('learnflow-user') || 'null')
-      setUser(savedUser)
+      // Try both Supabase user and localStorage user
+      const localUser = localStorage.getItem('learnflow-user')
+      if (localUser) {
+        setUser(JSON.parse(localUser))
+      }
     }
   }, [])
 
   const handleLogout = () => {
-    localStorage.removeItem('learnflow-user')
-    localStorage.removeItem('learnflow-progress')
-    localStorage.removeItem('learnflow-completions')
-    localStorage.removeItem('learnflow-achievements')
-    localStorage.removeItem('learnflow-activity')
+    // Clear all stored data
+    localStorage.clear()
     window.location.href = '/'
   }
 
@@ -53,13 +53,6 @@ export function Navigation() {
               <BarChart3 className="w-4 h-4 mr-1" />
               Analytics
             </button>
-            <button 
-              onClick={() => window.location.href = '/achievements'}
-              className="text-white/70 hover:text-white transition-colors flex items-center"
-            >
-              <Trophy className="w-4 h-4 mr-1" />
-              Achievements
-            </button>
           </div>
 
           {/* User Menu */}
@@ -71,24 +64,16 @@ export function Navigation() {
               <div className="w-8 h-8 bg-gradient-to-r from-emerald-400 to-blue-500 rounded-full flex items-center justify-center">
                 <User className="w-4 h-4 text-white" />
               </div>
-              <span className="hidden md:block">{user.name}</span>
+              <span className="hidden md:block">{user.name || user.full_name || 'User'}</span>
             </button>
 
             {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 shadow-lg">
+              <div className="absolute right-0 mt-2 w-48 bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 shadow-lg z-50">
                 <div className="py-2">
                   <div className="px-4 py-2 border-b border-white/10">
-                    <p className="text-white font-semibold">{user.name}</p>
-                    <p className="text-white/60 text-sm">{user.learningStyle} learner</p>
+                    <p className="text-white font-semibold">{user.name || user.full_name || 'User'}</p>
+                    <p className="text-white/60 text-sm">{user.learning_style || 'learner'}</p>
                   </div>
-                  
-                  <button 
-                    onClick={() => window.location.href = '/profile'}
-                    className="w-full text-left px-4 py-2 text-white/70 hover:text-white hover:bg-white/5 transition-colors flex items-center"
-                  >
-                    <Settings className="w-4 h-4 mr-3" />
-                    Settings
-                  </button>
                   
                   <button 
                     onClick={handleLogout}
