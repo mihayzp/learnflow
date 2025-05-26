@@ -1,59 +1,26 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server';
+import OpenAI from 'openai';
 
-export async function POST(request) {
-  const requestUrl = new URL(request.url)
-  const formData = await request.formData()
-  const email = formData.get('email')
-  const password = formData.get('password')
-  const action = formData.get('action') // 'signin' or 'signup'
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  const supabase = createRouteHandlerClient({ cookies })
+export async function POST(req) {
+  try {
+    const body = await req.json();
+    const { topic, level } = body;
 
-  if (action === 'signup') {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${requestUrl.origin}/auth/callback`,
-      },
-    })
-
-    if (error) {
-      return NextResponse.redirect(
-        `${requestUrl.origin}/login?error=Could not authenticate user`,
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
         {
-          status: 301,
-        }
-      )
-    }
+          role: 'user',
+          content: `Create a short interactive lesson about "${topic}" for a ${level} level learner.`,
+        },
+      ],
+    });
 
-    return NextResponse.redirect(
-      `${requestUrl.origin}/login?message=Check email to continue sign in process`,
-      {
-        status: 301,
-      }
-    )
-  }
-
-  if (action === 'signin') {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (error) {
-      return NextResponse.redirect(
-        `${requestUrl.origin}/login?error=Could not authenticate user`,
-        {
-          status: 301,
-        }
-      )
-    }
-
-    return NextResponse.redirect(`${requestUrl.origin}/dashboard`, {
-      status: 301,
-    })
+    return NextResponse.json({ lesson: response.choices[0].message.content });
+  } catch (error) {
+    console.error('OpenAI Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
